@@ -2330,9 +2330,8 @@ int sdhci_suspend_host(struct sdhci_host *host, pm_message_t state)
 	has_tuning_timer = host->version >= SDHCI_SPEC_300 &&
 		host->tuning_count && host->tuning_mode == SDHCI_TUNING_MODE_1;
 	if (has_tuning_timer) {
+		del_timer_sync(&host->tuning_timer);
 		host->flags &= ~SDHCI_NEEDS_RETUNING;
-		mod_timer(&host->tuning_timer, jiffies +
-			host->tuning_count * HZ);
 	}
 
 	if (mmc->card) {
