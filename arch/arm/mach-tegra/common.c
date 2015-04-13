@@ -346,7 +346,7 @@ void tegra_init_cache(bool init)
 	writel(0x3, p + L2X0_POWER_CTRL);
 	aux_ctrl = readl(p + L2X0_CACHE_TYPE);
 	aux_ctrl = (aux_ctrl & 0x700) << (17-8);
-	aux_ctrl |= 0x7C000001;
+	aux_ctrl |= 0x7C400001;
 	if (init) {
 		l2x0_init(p, aux_ctrl, 0x8200c3fe);
 		/* use our outer_disable() routine to avoid flush */
