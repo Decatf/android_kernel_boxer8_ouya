@@ -2226,6 +2226,7 @@ struct proto tcpv6_prot = {
 	.compat_setsockopt	= compat_tcp_setsockopt,
 	.compat_getsockopt	= compat_tcp_getsockopt,
 #endif
+	.diag_destroy		= tcp_abort,
 };
 
 static const struct inet6_protocol tcpv6_protocol = {

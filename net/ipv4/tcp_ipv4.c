@@ -2633,6 +2633,7 @@ struct proto tcp_prot = {
 	.compat_setsockopt	= compat_tcp_setsockopt,
 	.compat_getsockopt	= compat_tcp_getsockopt,
 #endif
+	.diag_destroy		= tcp_abort,
 };
 EXPORT_SYMBOL(tcp_prot);
 
