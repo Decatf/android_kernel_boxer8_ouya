@@ -48,6 +48,7 @@ show up in /proc/sys/kernel:
 - panic
 - panic_on_oops
 - panic_on_unrecovered_nmi
+- perf_event_paranoid
 - pid_max
 - powersave-nap               [ PPC only ]
 - printk
@@ -361,6 +362,17 @@ the recommended setting is 60.
 
 ==============================================================
 
+panic_on_oops:
+
+Controls the kernel's behaviour when an oops or BUG is encountered.
+
+0: try to continue operation
+
+1: panic immediately.  If the `panic' sysctl is also non-zero then the
+   machine will be rebooted.
+
+==============================================================
+
 panic_on_unrecovered_nmi:
 
 The default Linux behaviour on an NMI of either memory or unknown is
@@ -374,14 +386,15 @@ the existing panic controls already in that directory.
 
 ==============================================================
 
-panic_on_oops:
+perf_event_paranoid:
 
-Controls the kernel's behaviour when an oops or BUG is encountered.
+Controls use of the performance events system by unprivileged
+users (without CAP_SYS_ADMIN).  The default value is 1.
 
-0: try to continue operation
-
-1: panic immediately.  If the `panic' sysctl is also non-zero then the
-   machine will be rebooted.
+ -1: Allow use of (almost) all events by all users
+>=0: Disallow raw tracepoint access by users without CAP_IOC_LOCK
+>=1: Disallow CPU event access by users without CAP_SYS_ADMIN
+>=2: Disallow kernel profiling by users without CAP_SYS_ADMIN
 
 ==============================================================
 
