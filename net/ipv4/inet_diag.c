@@ -875,11 +875,6 @@ static int inet_diag_rcv_msg(struct sk_buff *skb, struct nlmsghdr *nlh)
 	return inet_diag_get_exact(skb, nlh);
 }
 
-static int __sock_diag_rcv_msg(struct sk_buff *skb, struct nlmsghdr *nlh)
-{
-	return -EOPNOTSUPP;
-}
-
 static int sock_diag_rcv_msg(struct sk_buff *skb, struct nlmsghdr *nlh)
 {
 	return inet_diag_rcv_msg(skb, nlh);
