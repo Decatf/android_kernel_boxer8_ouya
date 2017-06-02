@@ -23,6 +23,7 @@
 #include <linux/uaccess.h>
 #include <linux/slab.h>
 #include <linux/workqueue.h>
+#include <linux/kthread.h>
 
 #include <video/tegra_dc_ext.h>
 
@@ -54,7 +55,7 @@ struct tegra_dc_ext_flip_win {
 
 struct tegra_dc_ext_flip_data {
 	struct tegra_dc_ext		*ext;
-	struct work_struct		work;
+	struct kthread_work		flip_work;
 	struct tegra_dc_ext_flip_win	win[DC_N_WINDOWS];
 	struct list_head		timestamp_node;
 };
@@ -123,7 +124,7 @@ static int tegra_dc_ext_put_window(struct tegra_dc_ext_user *user,
 	mutex_lock(&win->lock);
 
 	if (win->user == user) {
-		flush_workqueue(win->flip_wq);
+		flush_kthread_worker(&win->flip_worker);
 		win->user = 0;
 	} else {
 		ret = -EACCES;
@@ -169,8 +170,7 @@ void tegra_dc_ext_disable(struct tegra_dc_ext *ext)
 	 */
 	for (i = 0; i < ext->dc->n_windows; i++) {
 		struct tegra_dc_ext_win *win = &ext->win[i];
-
-		flush_workqueue(win->flip_wq);
+		flush_kthread_worker(&win->flip_worker);
 	}
 }
 
@@ -327,10 +327,10 @@ int tegra_dc_unset_flip_callback()
 }
 EXPORT_SYMBOL(tegra_dc_unset_flip_callback);
 
-static void tegra_dc_ext_flip_worker(struct work_struct *work)
+static void tegra_dc_ext_flip_worker(struct kthread_work *work)
 {
 	struct tegra_dc_ext_flip_data *data =
-		container_of(work, struct tegra_dc_ext_flip_data, work);
+		container_of(work, struct tegra_dc_ext_flip_data, flip_work);
 	struct tegra_dc_ext *ext = data->ext;
 	struct tegra_dc_win *wins[DC_N_WINDOWS];
 	struct nvmap_handle_ref *unpin_handles[DC_N_WINDOWS *
@@ -558,7 +558,7 @@ static int tegra_dc_ext_flip(struct tegra_dc_ext_user *user,
 	if (!data)
 		return -ENOMEM;
 
-	INIT_WORK(&data->work, tegra_dc_ext_flip_worker);
+	init_kthread_work(&data->flip_work, tegra_dc_ext_flip_worker);
 	data->ext = ext;
 
 #ifdef CONFIG_ANDROID
@@ -662,7 +662,7 @@ static int tegra_dc_ext_flip(struct tegra_dc_ext_user *user,
 		list_add_tail(&data->timestamp_node, &ext->win[work_index].timestamp_queue);
 		mutex_unlock(&ext->win[work_index].queue_lock);
 	}
-	queue_work(ext->win[work_index].flip_wq, &data->work);
+	queue_kthread_work(&ext->win[work_index].flip_worker, &data->flip_work);
 
 	unlock_windows_for_flip(user, args);
 
@@ -984,6 +984,7 @@ static int tegra_dc_release(struct inode *inode, struct file *filp)
 
 static int tegra_dc_ext_setup_windows(struct tegra_dc_ext *ext)
 {
+	struct sched_param param = { .sched_priority = 1 };
 	int i, ret;
 
 	for (i = 0; i < ext->dc->n_windows; i++) {
@@ -995,11 +996,20 @@ static int tegra_dc_ext_setup_windows(struct tegra_dc_ext *ext)
 
 		snprintf(name, sizeof(name), "tegradc.%d/%c",
 			 ext->dc->ndev->id, 'a' + i);
-		win->flip_wq = create_singlethread_workqueue(name);
-		if (!win->flip_wq) {
+
+		/* Create SCHED_FIFO kthread */
+		init_kthread_worker(&win->flip_worker);
+		win->worker_thread = kthread_run(kthread_worker_fn,
+			&win->flip_worker, name);
+
+		if (IS_ERR(win->worker_thread)) {
+			pr_err("%s() unable to start dc win thread\n", __func__);
 			ret = -ENOMEM;
 			goto cleanup;
 		}
+
+		sched_setscheduler(win->worker_thread, SCHED_FIFO, &param);
+
 
 		mutex_init(&win->lock);
 		mutex_init(&win->queue_lock);
@@ -1011,7 +1021,7 @@ static int tegra_dc_ext_setup_windows(struct tegra_dc_ext *ext)
 cleanup:
 	while (i--) {
 		struct tegra_dc_ext_win *win = &ext->win[i];
-		destroy_workqueue(win->flip_wq);
+		kthread_stop(win->worker_thread);
 	}
 
 	return ret;
@@ -1098,8 +1108,8 @@ void tegra_dc_ext_unregister(struct tegra_dc_ext *ext)
 	for (i = 0; i < ext->dc->n_windows; i++) {
 		struct tegra_dc_ext_win *win = &ext->win[i];
 
-		flush_workqueue(win->flip_wq);
-		destroy_workqueue(win->flip_wq);
+		flush_kthread_worker(&win->flip_worker);
+		kthread_stop(win->worker_thread);
 	}
 
 	nvmap_client_put(ext->nvmap);
