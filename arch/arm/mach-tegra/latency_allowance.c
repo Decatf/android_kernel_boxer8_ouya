@@ -348,6 +348,8 @@ static int __init tegra_latency_allowance_init(void)
 {
 	unsigned int i;
 
+	pr_info("%s\n", __func__);
+
 	la_scaling_enable_count = 0;
 	memset(&id_to_index[0], 0xFF, sizeof(id_to_index));
 
