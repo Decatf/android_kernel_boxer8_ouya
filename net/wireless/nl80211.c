@@ -4042,7 +4042,7 @@ static bool nl80211_valid_wpa_versions(u32 wpa_versions)
 static bool nl80211_valid_akm_suite(u32 akm)
 {
 	return akm == WLAN_AKM_SUITE_8021X ||
-#if 1 /* AKM_SUITE for CCKM */
+#if 0 /* AKM_SUITE for CCKM */
 		akm == WLAN_AKM_SUITE_CCKM ||
 #endif
 		akm == WLAN_AKM_SUITE_PSK;
