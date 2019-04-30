@@ -57,7 +57,9 @@ struct tegra_dc_ext_flip_data {
 	struct tegra_dc_ext		*ext;
 	struct kthread_work		flip_work;
 	struct tegra_dc_ext_flip_win	win[DC_N_WINDOWS];
+#ifndef CONFIG_ANDROID
 	struct list_head		timestamp_node;
+#endif /* !CONFIG_ANDROID */
 };
 
 int tegra_dc_ext_get_num_outputs(void)
@@ -210,7 +212,9 @@ static int tegra_dc_ext_set_windowattr(struct tegra_dc_ext *ext,
 {
 	int err = 0;
 	struct tegra_dc_ext_win *ext_win = &ext->win[win->idx];
+#ifndef CONFIG_ANDROID
 	s64 timestamp_ns;
+#endif /* !CONFIG_ANDROID */
 
 	if (flip_win->handle[TEGRA_DC_Y] == NULL) {
 		win->flags = 0;
@@ -276,6 +280,7 @@ static int tegra_dc_ext_set_windowattr(struct tegra_dc_ext *ext,
 				msecs_to_jiffies(500), NULL);
 	}
 
+#ifndef CONFIG_ANDROID
 #ifndef CONFIG_TEGRA_SIMULATION_PLATFORM
 	timestamp_ns = timespec_to_ns(&flip_win->attr.timestamp);
 
@@ -290,6 +295,9 @@ static int tegra_dc_ext_set_windowattr(struct tegra_dc_ext *ext,
 	}
 #endif
 	return err;
+#else /* !CONFIG_ANDROID */
+	return 0;
+#endif /* !CONFIG_ANDROID */
 }
 
 static void (*flip_callback)(void);
@@ -341,11 +349,14 @@ static void tegra_dc_ext_flip_worker(struct kthread_work *work)
 
 	for (i = 0; i < DC_N_WINDOWS; i++) {
 		struct tegra_dc_ext_flip_win *flip_win = &data->win[i];
-		int j = 0, index = flip_win->attr.index;
+		int index = flip_win->attr.index;
 		struct tegra_dc_win *win;
 		struct tegra_dc_ext_win *ext_win;
+#ifndef CONFIG_ANDROID
+		int j = 0;
 		struct tegra_dc_ext_flip_data *temp = NULL;
 		s64 head_timestamp = 0;
+#endif /* !CONFIG_ANDROID */
 
 		if (index < 0)
 			continue;
@@ -357,6 +368,7 @@ static void tegra_dc_ext_flip_worker(struct kthread_work *work)
 			(flip_win->attr.flags & TEGRA_DC_EXT_FLIP_FLAG_CURSOR))
 			skip_flip = true;
 
+#ifndef CONFIG_ANDROID
 		mutex_lock(&ext_win->queue_lock);
 		list_for_each_entry(temp, &ext_win->timestamp_queue,
 				timestamp_node) {
@@ -381,6 +393,7 @@ static void tegra_dc_ext_flip_worker(struct kthread_work *work)
 		if (!list_empty(&ext_win->timestamp_queue))
 			list_del(&data->timestamp_node);
 		mutex_unlock(&ext_win->queue_lock);
+#endif /* !CONFIG_ANDROID */
 
 		if (skip_flip)
 			old_handle = flip_win->handle[TEGRA_DC_Y];
@@ -418,6 +431,9 @@ static void tegra_dc_ext_flip_worker(struct kthread_work *work)
 				flip_callback();
 			spin_unlock(&flip_callback_lock);
 		}
+#ifdef CONFIG_ANDROID
+	}
+#endif /* CONFIG_ANDROID */
 
 		for (i = 0; i < DC_N_WINDOWS; i++) {
 			struct tegra_dc_ext_flip_win *flip_win = &data->win[i];
@@ -429,7 +445,9 @@ static void tegra_dc_ext_flip_worker(struct kthread_work *work)
 			tegra_dc_incr_syncpt_min(ext->dc, index,
 					flip_win->syncpt_max);
 		}
+#ifndef CONFIG_ANDROID
 	}
+#endif /* !CONFIG_ANDROID */
 
 	/* unpin and deref previous front buffers */
 	for (i = 0; i < nr_unpin; i++) {
@@ -540,7 +558,9 @@ static int tegra_dc_ext_flip(struct tegra_dc_ext_user *user,
 	struct tegra_dc_ext_flip_data *data;
 	int work_index = -1;
 	int i, ret = 0;
+#ifndef CONFIG_ANDROID
 	bool has_timestamp = false;
+#endif /* !CONFIG_ANDROID */
 
 #ifdef CONFIG_ANDROID
 	int index_check[DC_N_WINDOWS] = {0, };
@@ -581,8 +601,10 @@ static int tegra_dc_ext_flip(struct tegra_dc_ext_user *user,
 		int index = args->win[i].index;
 
 		memcpy(&flip_win->attr, &args->win[i], sizeof(flip_win->attr));
+#ifndef CONFIG_ANDROID
 		if (timespec_to_ns(&flip_win->attr.timestamp))
 			has_timestamp = true;
+#endif /* !CONFIG_ANDROID */
 
 		if (index < 0)
 			continue;
@@ -657,11 +679,13 @@ static int tegra_dc_ext_flip(struct tegra_dc_ext_user *user,
 		ret = -EINVAL;
 		goto unlock;
 	}
+#ifndef CONFIG_ANDROID
 	if (has_timestamp) {
 		mutex_lock(&ext->win[work_index].queue_lock);
 		list_add_tail(&data->timestamp_node, &ext->win[work_index].timestamp_queue);
 		mutex_unlock(&ext->win[work_index].queue_lock);
 	}
+#endif /* !CONFIG_ANDROID */
 	queue_kthread_work(&ext->win[work_index].flip_worker, &data->flip_work);
 
 	unlock_windows_for_flip(user, args);
@@ -1012,8 +1036,10 @@ static int tegra_dc_ext_setup_windows(struct tegra_dc_ext *ext)
 
 
 		mutex_init(&win->lock);
+#ifndef CONFIG_ANDROID
 		mutex_init(&win->queue_lock);
 		INIT_LIST_HEAD(&win->timestamp_queue);
+#endif /* !CONFIG_ANDROID */
 	}
 
 	return 0;

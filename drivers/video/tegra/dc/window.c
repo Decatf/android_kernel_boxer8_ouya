@@ -24,7 +24,9 @@
 #include "dc_priv.h"
 
 static int no_vsync;
+#ifndef CONFIG_ANDROID
 static atomic_t frame_end_ref = ATOMIC_INIT(0);
+#endif /* !CONFIG_ANDROID */
 
 module_param_named(no_vsync, no_vsync, int, S_IRUGO | S_IWUSR);
 
@@ -41,6 +43,7 @@ static bool tegra_dc_windows_are_clean(struct tegra_dc_win *windows[],
 	return true;
 }
 
+#ifndef CONFIG_ANDROID
 int tegra_dc_config_frame_end_intr(struct tegra_dc *dc, bool enable)
 {
 	tegra_dc_writel(dc, FRAME_END_INT, DC_CMD_INT_STATUS);
@@ -51,6 +54,7 @@ int tegra_dc_config_frame_end_intr(struct tegra_dc *dc, bool enable)
 		tegra_dc_mask_interrupt(dc, FRAME_END_INT);
 	return 0;
 }
+#endif /* !CONFIG_ANDROID */
 
 static int get_topmost_window(u32 *depths, unsigned long *wins)
 {
@@ -435,9 +439,14 @@ int tegra_dc_update_windows(struct tegra_dc_win *windows[], int n)
 			FRAME_END_INT | V_BLANK_INT | ALL_UF_INT);
 	} else {
 		clear_bit(V_BLANK_FLIP, &dc->vblank_ref_count);
-		tegra_dc_mask_interrupt(dc, V_BLANK_INT | ALL_UF_INT);
+		tegra_dc_mask_interrupt(dc,
+#ifndef CONFIG_ANDROID
+			V_BLANK_INT | ALL_UF_INT);
 		if (!atomic_read(&frame_end_ref))
 			tegra_dc_mask_interrupt(dc, FRAME_END_INT);
+#else /* !CONFIG_ANDROID */
+			FRAME_END_INT | V_BLANK_INT | ALL_UF_INT);
+#endif /* !CONFIG_ANDROID */
 	}
 
 	tegra_dc_release_dc_out(dc);
@@ -474,7 +483,11 @@ void tegra_dc_trigger_windows(struct tegra_dc *dc)
 
 	if (!dirty) {
 		if (!(dc->out->flags & TEGRA_DC_OUT_ONE_SHOT_MODE)
+#ifndef CONFIG_ANDROID
 			&& !atomic_read(&frame_end_ref))
+#else /* !CONFIG_ANDROID */
+			)
+#endif /* !CONFIG_ANDROID */
 			tegra_dc_mask_interrupt(dc, FRAME_END_INT);
 	}
 

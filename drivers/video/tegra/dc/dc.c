@@ -1073,9 +1073,11 @@ static void tegra_dc_one_shot_irq(struct tegra_dc *dc, unsigned long status)
 	}
 
 	if (status & FRAME_END_INT) {
+#ifndef CONFIG_ANDROID
 		/* Mark the frame_end as complete. */
 		if (!completion_done(&dc->frame_end_complete))
 			complete(&dc->frame_end_complete);
+#endif /* !CONFIG_ANDROID */
 	}
 }
 
@@ -1086,9 +1088,11 @@ static void tegra_dc_continuous_irq(struct tegra_dc *dc, unsigned long status)
 		queue_kthread_work(&dc->dc_worker, &dc->vblank_work);
 
 	if (status & FRAME_END_INT) {
+#ifndef CONFIG_ANDROID
 		struct timespec tm = CURRENT_TIME;
 		dc->frame_end_timestamp = timespec_to_ns(&tm);
 		wake_up(&dc->timestamp_wq);
+#endif /* !CONFIG_ANDROID */
 
 		/* Mark the frame_end as complete. */
 		if (!completion_done(&dc->frame_end_complete))
@@ -1098,6 +1102,7 @@ static void tegra_dc_continuous_irq(struct tegra_dc *dc, unsigned long status)
 	}
 }
 
+#ifndef CONFIG_ANDROID
 /* XXX: Not sure if we limit look ahead to 1 frame */
 bool tegra_dc_is_within_n_vsync(struct tegra_dc *dc, s64 ts)
 {
@@ -1113,6 +1118,7 @@ bool tegra_dc_does_vsync_separate(struct tegra_dc *dc, s64 new_ts, s64 old_ts)
 			!= div_s64((old_ts - dc->frame_end_timestamp),
 				dc->frametime_ns)));
 }
+#endif /* !CONFIG_ANDROID */
 #endif
 
 static irqreturn_t tegra_dc_irq(int irq, void *ptr)
@@ -1851,7 +1857,9 @@ static int tegra_dc_probe(struct nvhost_device *ndev,
 	mutex_init(&dc->one_shot_lock);
 	init_completion(&dc->frame_end_complete);
 	init_waitqueue_head(&dc->wq);
+#ifndef CONFIG_ANDROID
 	init_waitqueue_head(&dc->timestamp_wq);
+#endif /* !CONFIG_ANDROID */
 #ifdef CONFIG_ARCH_TEGRA_2x_SOC
 	INIT_WORK(&dc->reset_work, tegra_dc_reset_worker);
 #endif

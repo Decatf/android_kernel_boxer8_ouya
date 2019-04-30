@@ -61,9 +61,11 @@ struct tegra_dc_ext_win {
 
 	atomic_t		nr_pending_flips;
 
+#ifndef CONFIG_ANDROID
 	struct mutex		queue_lock;
 
 	struct list_head	timestamp_queue;
+#endif /* !CONFIG_ANDROID */
 };
 
 struct tegra_dc_ext {
