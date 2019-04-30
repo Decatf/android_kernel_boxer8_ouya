@@ -248,7 +248,7 @@ void tegra_dc_program_bandwidth(struct tegra_dc *dc, bool use_new)
 	for (i = 0; i < DC_N_WINDOWS; i++) {
 		struct tegra_dc_win *w = &dc->windows[i];
 
-		if ((use_new || w->bandwidth != w->new_bandwidth) &&
+		if ((w->bandwidth != w->new_bandwidth) &&
 			w->new_bandwidth != 0)
 			tegra_dc_set_latency_allowance(dc, w);
 		w->bandwidth = w->new_bandwidth;
