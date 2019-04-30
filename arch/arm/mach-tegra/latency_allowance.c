@@ -41,6 +41,11 @@
 		printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__); \
 	}
 
+#define la_info(fmt, ...) \
+	if (1) { \
+		printk(KERN_INFO pr_fmt(fmt), ##__VA_ARGS__); \
+	}
+
 /* Bug 995270 */
 #define HACK_LA_FIFO 1
 
