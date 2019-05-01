@@ -677,6 +677,20 @@ int efi_partition(struct parsed_partitions *state)
 			info->volname[label_count] = c;
 			label_count++;
 		}
+
+		/*
+		 * Prevent userspace from finding the boot partition on Ouya.
+		 * LNX is a standard partition name for Android devices.
+		 * Rename the boot parition to something install scripts
+		 * don't look for.
+		 */
+		if (!strcmp("LNX", (char*)info->volname)) {
+			snprintf((char*)info->volname, label_max,
+				 "DO_NOT_TOUCH");
+			pr_info("%s: renamed LNX to %s\n", __func__,
+				(char*)info->volname);
+		}
+
 		state->parts[i + 1].has_info = true;
 	}
 	kfree(ptes);
