@@ -300,10 +300,10 @@ void tegra_latency_allowance_update_tick_length(unsigned int new_ns_per_tick)
 		spin_unlock(&safety_lock);
 
 		/* Re-scale G2PR, G2SR, G2DR, G2DW with updated ns_per_tick */
-		tegra_set_latency_allowance(TEGRA_LA_G2PR, 20);
-		tegra_set_latency_allowance(TEGRA_LA_G2SR, 20);
-		tegra_set_latency_allowance(TEGRA_LA_G2DR, 20);
-		tegra_set_latency_allowance(TEGRA_LA_G2DW, 20);
+		// tegra_set_latency_allowance(TEGRA_LA_G2PR, 20);
+		// tegra_set_latency_allowance(TEGRA_LA_G2SR, 20);
+		// tegra_set_latency_allowance(TEGRA_LA_G2DR, 20);
+		// tegra_set_latency_allowance(TEGRA_LA_G2DW, 20);
 	}
 }
 
