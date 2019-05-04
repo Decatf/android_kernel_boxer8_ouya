@@ -1637,11 +1637,22 @@ if (0)	cardhu_pci_init();
 	tegra_serial_debug_init(TEGRA_UARTD_BASE, INT_WDT_CPU, NULL, -1, -1);
 }
 
+#define PRIMARY_DISP_HDMI
+
 static void __init tegra_cardhu_reserve(void)
 {
 #if defined(CONFIG_NVMAP_CONVERT_CARVEOUT_TO_IOVMM)
+#ifdef PRIMARY_DISP_HDMI
+	/*
+	 * Ouya:
+	 *  - 1920x1200 32bpp double buffered on first display
+	 *  - Secondary display is not used
+	 */
+	tegra_reserve(0, (SZ_8M + SZ_1M) * 2, 0);
+#else /* !PRIMARY_DISP_HDMI */
 	/* support 1920X1200 with 24bpp */
 	tegra_reserve(0, SZ_8M + SZ_1M, SZ_8M + SZ_1M);
+#endif /* PRIMARY_DISP_HDMI */
 #else
 	tegra_reserve(SZ_128M, SZ_8M, SZ_8M);
 #endif
