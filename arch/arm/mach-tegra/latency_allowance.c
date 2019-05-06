@@ -66,8 +66,12 @@ static int la_scaling_enable_count;
 
 #define VALIDATE_ID(id) \
 	do { \
-		if (id >= TEGRA_LA_MAX_ID || id_to_index[id] == 0xFFFF) { \
+		if (id >= TEGRA_LA_MAX_ID) { \
 			pr_err("%s: invalid Id=%d", __func__, id); \
+			return -EINVAL; \
+		} \
+		if (id_to_index[id] == 0xFFFF) { \
+			pr_err("%s: invalid index Id=%d", __func__, id); \
 			return -EINVAL; \
 		} \
 		BUG_ON(la_info_array[id_to_index[id]].id != id); \
