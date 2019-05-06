@@ -1639,6 +1639,21 @@ if (0)	cardhu_pci_init();
 
 #define PRIMARY_DISP_HDMI
 
+static int kernel_type = -1;
+static int __init kernel_type_arg(char *p)
+{
+	if (!strcmp("normal", p))
+		kernel_type = 0;
+	else if (!strcmp("recovery", p))
+		kernel_type = 1;
+	else
+		kernel_type = 2;
+
+	return 0;
+}
+early_param("android.kerneltype", kernel_type_arg);
+
+
 static void __init tegra_cardhu_reserve(void)
 {
 #if defined(CONFIG_NVMAP_CONVERT_CARVEOUT_TO_IOVMM)
@@ -1649,7 +1664,12 @@ static void __init tegra_cardhu_reserve(void)
 	 *  - Secondary display is not used but reserve it.
 	 *    - Without fb2 size, TWRP rendering is very slow.
 	 */
-	tegra_reserve(0, (SZ_8M + SZ_1M) * 2, SZ_8M + SZ_1M);
+	pr_info("%s: kerneltype = %d\n", __func__, kernel_type);
+	if (kernel_type == 0)
+		tegra_reserve(0, (SZ_8M + SZ_1M) * 2, 0);
+	else
+		tegra_reserve(0, SZ_8M + SZ_1M, SZ_8M + SZ_1M);
+
 #else /* !PRIMARY_DISP_HDMI */
 	/* support 1920X1200 with 24bpp */
 	tegra_reserve(0, SZ_8M + SZ_1M, SZ_8M + SZ_1M);

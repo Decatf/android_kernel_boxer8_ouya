@@ -90,6 +90,20 @@ static int tegra_fb_check_var(struct fb_var_screeninfo *var,
 	return 0;
 }
 
+static int kernel_type = -1;
+static int __init kernel_type_arg(char *p)
+{
+	if (!strcmp("normal", p))
+		kernel_type = 0;
+	else if (!strcmp("recovery", p))
+		kernel_type = 1;
+	else
+		kernel_type = 2;
+
+	return 0;
+}
+early_param("android.kerneltype", kernel_type_arg);
+
 static int tegra_fb_set_par(struct fb_info *info)
 {
 	struct tegra_fb_info *tegra_fb = info->par;
@@ -159,9 +173,9 @@ static int tegra_fb_set_par(struct fb_info *info)
 					FB_VMODE_STEREO_LEFT_RIGHT);
 #endif
 
-		pr_info("%s: xres=%d, yres=%d\n", __func__, var->xres, var->yres);
-		if (tegra_fb->win &&  tegra_fb->win->dc &&
+		if (kernel_type == 0 && tegra_fb->win &&  tegra_fb->win->dc &&
 		    !tegra_fb->win->dc->have_var) {
+			pr_info("%s: xres=%d, yres=%d\n", __func__, var->xres, var->yres);
 			memcpy(&tegra_fb->win->dc->default_var, var, sizeof(*var));
 			tegra_fb->win->dc->have_var = true;
 			tegra_dc_set_fb_mode(tegra_fb->win->dc, info->mode, stereo);
