@@ -1646,9 +1646,10 @@ static void __init tegra_cardhu_reserve(void)
 	/*
 	 * Ouya:
 	 *  - 1920x1200 32bpp double buffered on first display
-	 *  - Secondary display is not used
+	 *  - Secondary display is not used but reserve it.
+	 *    - Without fb2 size, TWRP rendering is very slow.
 	 */
-	tegra_reserve(0, (SZ_8M + SZ_1M) * 2, 0);
+	tegra_reserve(0, (SZ_8M + SZ_1M) * 2, SZ_8M + SZ_1M);
 #else /* !PRIMARY_DISP_HDMI */
 	/* support 1920X1200 with 24bpp */
 	tegra_reserve(0, SZ_8M + SZ_1M, SZ_8M + SZ_1M);
