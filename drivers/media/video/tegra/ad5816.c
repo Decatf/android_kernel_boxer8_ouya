@@ -310,7 +310,7 @@ static void ad5816_gpio_able(struct ad5816_info *info, int val)
 static void ad5816_gpio_exit(struct ad5816_info *info)
 {
 	unsigned i;
-	for (i = 0; i <= ARRAY_SIZE(ad5816_gpios); i++) {
+	for (i = 0; i < ARRAY_SIZE(ad5816_gpios); i++) {
 		if (info->gpio[i].flag && info->gpio[i].own) {
 			gpio_free(info->gpio[i].gpio);
 			info->gpio[i].own = false;
@@ -869,10 +869,11 @@ static int ad5816_param_wr(struct ad5816_info *info, unsigned long arg)
 					AD5816_GPIO_I2CMUX, 0);
 				}
 				else {
-					if (info->s_mode != NVC_SYNC_STEREO)
+					if (info->s_mode != NVC_SYNC_STEREO) {
 						ad5816_pm_wr(info->s_info,
 						NVC_PWR_OFF);
 						err = -EIO;
+					}
 				}
 			} else {
 				err = -EINVAL;
