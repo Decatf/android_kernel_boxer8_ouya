@@ -159,7 +159,13 @@ static int tegra_fb_set_par(struct fb_info *info)
 					FB_VMODE_STEREO_LEFT_RIGHT);
 #endif
 
-		tegra_dc_set_fb_mode(tegra_fb->win->dc, info->mode, stereo);
+		pr_info("%s: xres=%d, yres=%d\n", __func__, var->xres, var->yres);
+		if (tegra_fb->win &&  tegra_fb->win->dc &&
+		    !tegra_fb->win->dc->have_var) {
+			memcpy(&tegra_fb->win->dc->default_var, var, sizeof(*var));
+			tegra_fb->win->dc->have_var = true;
+			tegra_dc_set_fb_mode(tegra_fb->win->dc, info->mode, stereo);
+		}
 
 		tegra_fb->win->w.full = dfixed_const(info->mode->xres);
 		tegra_fb->win->h.full = dfixed_const(info->mode->yres);
@@ -347,6 +353,18 @@ static int tegra_fb_ioctl(struct fb_info *info, unsigned int cmd, unsigned long 
 			return -EFAULT;
 
 		i = 0;
+
+		if (dc->have_var) {
+			pr_info("%s: using default_var\n", __func__);
+			struct fb_var_screeninfo *var = &dc->default_var;
+
+			if (copy_to_user((void __user *)&modedb.modedb[i],
+					 var, sizeof(*var)))
+				return -EFAULT;
+			i++;
+			goto skip_list;
+		}
+
 		list_for_each_entry(modelist, &info->modelist, list) {
 			struct fb_var_screeninfo var;
 
@@ -377,6 +395,7 @@ static int tegra_fb_ioctl(struct fb_info *info, unsigned int cmd, unsigned long 
 				i++;
 			}
 		}
+skip_list:
 		modedb.modedb_len = i;
 
 		if (copy_to_user((void __user *)arg, &modedb, sizeof(modedb)))

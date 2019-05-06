@@ -114,6 +114,8 @@ struct tegra_dc {
 	void				*out_data;
 
 	struct tegra_dc_mode		mode;
+	struct fb_var_screeninfo	default_var;
+	bool				have_var;
 #ifndef CONFIG_ANDROID
 	s64				frametime_ns;
 #endif /* !CONFIG_ANDROID */
